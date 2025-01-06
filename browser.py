@@ -1,16 +1,21 @@
 import socket
 import ssl
+import os
+from pathlib import Path
 
 class URL:
     def __init__(self, url) -> None:
         self.scheme, url = url.split("://", 1)
         
-        assert self.scheme in ["http", "https"]
+        assert self.scheme in ["http", "https", "file"]
         if self.scheme == "http":
             self.port = 80
         elif self.scheme == "https":
             self.port = 443
-
+        elif self.scheme == "file":
+            self.path = url
+            return
+        
         if "/" not in url:
             url = url + "/"
         self.host, url = url.split("/", 1)
@@ -21,6 +26,9 @@ class URL:
             self.port = int(port)
 
     def request(self):
+        if self.scheme == "file":
+            return self.handleFile()
+
         s = socket.socket(family=socket.AF_INET,
                           type =socket.SOCK_STREAM,
                           proto = socket.IPPROTO_TCP)
@@ -58,6 +66,14 @@ class URL:
 
         return content
         
+    def handleFile(self):
+        if os.path.isfile(self.path): 
+            content = Path(self.path).read_text()
+            return content
+        else:
+            content = "No File at the given path"
+            return content
+
 
 def show(body):
     in_tag = False
@@ -73,8 +89,9 @@ def load(url):
     body = url.request()
     show(body)
 
-if __name__ == "__main__":
-    import sys
-    load(URL(sys.argv[1]))
+# if __name__ == "__main__":
+#     import sys
+#     load(URL(sys.argv[1]))
 
 # load(URL("http://google.com"))
+load(URL(("file:///Users/rj/Desktop/samples.txt")))
