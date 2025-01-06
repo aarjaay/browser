@@ -2,6 +2,8 @@ import socket
 import ssl
 import os
 from pathlib import Path
+import tkinter
+
 
 class URL:
     def __init__(self, url) -> None:
@@ -74,6 +76,47 @@ class URL:
             content = "No File at the given path"
             return content
 
+WIDTH, HEIGHT = 800, 600
+H_STEP, V_STEP = 13, 18
+SCROLL_STEP = 100
+
+class Browser:
+    def __init__(self):
+        self.window = tkinter.Tk()
+        self.canvas = tkinter.Canvas(self.window, width=WIDTH, height=HEIGHT)
+        self.canvas.pack()
+        self.scroll = 0
+        self.window.bind("<Down>", self.scrolldown)
+
+    def scrolldown(self, e):
+        self.scroll += SCROLL_STEP
+        self.draw()
+
+    def load(self, url):
+        body = url.request()
+        text = lex(body)
+        self.display_list = layout(text)
+        self.draw()
+    
+    def draw(self):
+        self.canvas.delete("all")
+
+        for x, y, c in self.display_list:
+            y = y - self.scroll
+            if y + V_STEP < 0: continue
+            if y > HEIGHT: continue
+            self.canvas.create_text(x, y, text=c)
+
+def layout(text):
+    display_list = []
+    cursor_x, cursor_y = H_STEP, V_STEP
+    for c in text:
+        display_list.append((cursor_x, cursor_y, c))
+        cursor_x += H_STEP
+        if cursor_x >= WIDTH - H_STEP:
+            cursor_x = H_STEP
+            cursor_y = cursor_y + V_STEP
+    return display_list
 
 def show(body):
     in_tag = False
@@ -84,14 +127,29 @@ def show(body):
             in_tag=False
         elif not in_tag:
             print (c, end="")
-    
+
+def lex(body):
+    text = ""
+    in_tag = False
+    for c in body:
+        if c == "<":
+            in_tag= True
+        elif c ==">":
+            in_tag=False
+        elif not in_tag:
+            text += c
+    return text
+
+
 def load(url):
     body = url.request()
     show(body)
-
-# if __name__ == "__main__":
-#     import sys
-#     load(URL(sys.argv[1]))
+    
+if __name__ == "__main__":
+    import sys
+    # load(URL(sys.argv[1]))
+    Browser().load(URL(sys.argv[1]))
+    tkinter.mainloop()
 
 # load(URL("http://google.com"))
 load(URL(("file:///Users/rj/Desktop/samples.txt")))
